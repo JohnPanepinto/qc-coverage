@@ -431,13 +431,8 @@ function render(records, ds){
     const sd       = f['Start Date']||'';
 
     let startET=null, endET=null, localStart=null, localEnd=null;
-    if(sd){
-      const d = new Date(sd);
-      // Use the Airtable Start Date which is stored in UTC
-      const utcH = d.getUTCHours() + d.getUTCMinutes()/60;
-      startET = utcH; // stored as UTC, converted at render time
-      endET   = startET + duration;
-    }
+
+    // Parse Comment field for local shift time (most reliable source)
     if(comment){
       const parts = comment.split('-').map(s=>s.trim());
       if(parts.length===2){
@@ -445,6 +440,26 @@ function render(records, ds){
         localStart = pm(parts[0]);
         localEnd   = pm(parts[1]);
       }
+    }
+
+    // Determine home TZ offset from team field
+    const homeOffset = (() => {
+      const tf = (Array.isArray(teamField) ? teamField[0] : teamField) || '';
+      if(tf === '§QC IN') return 5.5;
+      if(tf === '-QC AMS' || tf === '-QC WAW') return 2;
+      if(tf === 'QC Director') return 2;
+      return -4; // ET default (NY, managers, RIV)
+    })();
+
+    if(localStart !== null){
+      // Convert local time to UTC, store as UTC for display conversion at render time
+      startET = ((localStart - homeOffset) + 24) % 24;
+      endET = startET + duration;
+    } else if(sd){
+      // Fall back to Start Date UTC if no Comment
+      const d = new Date(sd);
+      startET = d.getUTCHours() + d.getUTCMinutes()/60;
+      endET = startET + duration;
     }
 
     employees.forEach(name => {
