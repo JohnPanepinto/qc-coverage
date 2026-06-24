@@ -241,7 +241,7 @@ function teamForName(name, teamFromAirtable){
 }
 
 // ── LocalStorage cache ───────────────────────────────────────────────────────
-function lsKey(ds){ return 'qc2_'+ds; }
+function lsKey(ds){ return 'qc3_'+ds; }
 function lsSave(ds, records){
   try{ localStorage.setItem(lsKey(ds), JSON.stringify({ts:Date.now(), records})); }catch(e){}
 }
