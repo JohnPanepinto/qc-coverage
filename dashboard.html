@@ -432,8 +432,10 @@ function render(records, ds){
 
     let startET=null, endET=null, localStart=null, localEnd=null;
 
-    // Parse Comment field for local shift time (most reliable source)
-    if(comment){
+    // Parse Comment field for local shift time
+    // Comment blank or '-' means no local time available
+    const hasComment = comment && comment.trim() !== '-' && comment.trim() !== '';
+    if(hasComment){
       const parts = comment.split('-').map(s=>s.trim());
       if(parts.length===2){
         const pm = t => { const m=t.match(/(\d{1,2}):(\d{2})/); return m?parseInt(m[1])+parseInt(m[2])/60:null; };
@@ -443,22 +445,29 @@ function render(records, ds){
     }
 
     // Determine home TZ offset from team field
+    const tf2 = (Array.isArray(teamField) ? teamField[0] : teamField) || '';
+    const isIndiaTeam = tf2 === '§QC IN';
     const homeOffset = (() => {
-      const tf = (Array.isArray(teamField) ? teamField[0] : teamField) || '';
-      if(tf === '§QC IN') return 5.5;
-      if(tf === '-QC AMS' || tf === '-QC WAW') return 2;
-      if(tf === 'QC Director') return 2;
-      return -4; // ET default (NY, managers, RIV)
+      if(isIndiaTeam) return 5.5;
+      if(tf2 === '-QC AMS' || tf2 === '-QC WAW') return 2;
+      if(tf2 === 'QC Director') return 2;
+      if(tf2 === '#QC Manager & Supervisor') return 2; // mostly CET, ET managers handled separately
+      return -4; // ET default (NY, RIV)
     })();
 
-    if(localStart !== null){
-      // Convert local time to UTC, store as UTC for display conversion at render time
-      startET = ((localStart - homeOffset) + 24) % 24;
-      endET = startET + duration;
-    } else if(sd){
-      // Fall back to Start Date UTC if no Comment
+    if(sd){
       const d = new Date(sd);
-      startET = d.getUTCHours() + d.getUTCMinutes()/60;
+      const sdUTC = d.getUTCHours() + d.getUTCMinutes()/60;
+      if(!hasComment || isIndiaTeam){
+        // No comment, or India team where Start Date is reliable — use Start Date UTC directly
+        startET = sdUTC;
+      } else {
+        // Use Comment local time + home TZ offset
+        startET = localStart !== null ? ((localStart - homeOffset) + 24) % 24 : sdUTC;
+      }
+      endET = startET + duration;
+    } else if(localStart !== null){
+      startET = ((localStart - homeOffset) + 24) % 24;
       endET = startET + duration;
     }
 
