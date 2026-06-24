@@ -444,6 +444,9 @@ function render(records, ds){
 
     employees.forEach(name => {
       if(!peopleMap[name]) peopleMap[name] = [];
+      if(name && (name.toLowerCase().includes('jyoti') || name.toLowerCase().includes('nagesh'))) {
+        console.log('DEBUG', name, 'startET(UTC):', startET, 'duration:', duration, 'teamField:', teamField, 'sd:', sd);
+      }
       peopleMap[name].push({shift, startET, endET, localStart, localEnd, duration, teamField, personName: name});
     });
   });
