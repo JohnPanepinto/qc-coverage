@@ -205,7 +205,7 @@ const CALENDARS = {
     },
     // Map person names to location-based teams
     memberTeams: {
-      'Gino Donatelli':'RIV US','T'Khari Fisher':'RIV US','Cici Chu':'RIV US','Michael Berg':'RIV US',
+      'Gino Donatelli':'RIV US','Cici Chu':'RIV US','Michael Berg':'RIV US','TKhari Fisher':'RIV US',
       'Jude Patrao':'RIV Canada','Joshua Brooker':'RIV Canada',
       'Deodas Saha':'RIV India','Ankush Keripale':'RIV India','Bijan Sahoo':'RIV India',
       'Ronan Rozario':'RIV India','Shabnam Sultana':'RIV India','Yash Amrite':'RIV India',
@@ -426,7 +426,7 @@ function teamForName(name, teamFromAirtable){
     const rivTeams = CALENDARS.RIV.memberTeams;
     if(rivTeams[name]) return rivTeams[name];
     // Try partial match
-    const match = Object.keys(rivTeams).find(k => name.toLowerCase().includes(k.split(' ')[1]?.toLowerCase()||''));
+    const match = Object.keys(rivTeams).find(k => k.split(' ').some(part => part.length > 3 && name.toLowerCase().includes(part.toLowerCase())));
     if(match) return rivTeams[match];
     return '#RIV Team';
   }
