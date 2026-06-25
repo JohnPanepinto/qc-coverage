@@ -1329,13 +1329,31 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const savedCalendar = localStorage.getItem('qc_calendar');
   if(savedCalendar){
     const cs = document.getElementById('calendar-select');
-    if(cs){ cs.value = savedCalendar; onCalendarChange(); }
-  } else {
-    // Default to QC
-    onCalendarChange();
+    if(cs) cs.value = savedCalendar;
+  }
+
+  // Initialize calendar state without triggering a load yet
+  const initialCal = document.getElementById('calendar-select').value;
+  const initialCalKey = initialCal === 'ALL' ? 'QC' : initialCal;
+  setActiveCalendar(initialCalKey);
+
+  // Update sub-team dropdown
+  const subteams = CALENDAR_SUBTEAMS[initialCalKey] || [];
+  const tf2 = document.getElementById('team-filter');
+  if(subteams.length > 0){
+    tf2.innerHTML = '<option value="ALL">All</option>';
+    subteams.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.value; opt.textContent = s.label;
+      tf2.appendChild(opt);
+    });
+    tf2.style.display = '';
   }
   const savedTeam = localStorage.getItem('qc_team');
-  if(savedTeam){ const tf = document.getElementById('team-filter'); if(tf && tf.style.display !== 'none') tf.value = savedTeam; }
+  if(savedTeam && tf2) tf2.value = savedTeam;
+
+  // Update TZ dropdown
+  updateTzDropdown(initialCalKey);
 
   // Initial load — always pass todayStr explicitly
   setTimeout(()=>{ loadDate(todayStr); }, 50);
