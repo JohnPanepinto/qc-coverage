@@ -160,7 +160,9 @@ const TEAM_TZ = {
   '*QC NY':'ET','§QC IN':'IST','-QC AMS':'CET','-QC WAW':'CET',
   '#QC Manager & Supervisor':'ET/CET','QC Director':'CET','VP':'ET',
   'Coordination Team':'ET','Coordination Supervisor':'ET','Coordination Manager':'ET',
-  '#RIV Team':'ET','RIV Team Manager':'ET','RIV Team Sr Director':'ET'
+  '#RIV Team':'ET','RIV Team Manager':'ET','RIV Team Sr Director':'ET',
+  'RIV US':'ET','RIV Canada':'ET','RIV India':'IST',
+  'RIV Netherlands':'CET','RIV Poland':'CET','RIV Cyprus':'EET'
 };
 // People in Managers group who are on ET
 const ET_MANAGERS = ['panepinto','restivo'];
@@ -190,11 +192,28 @@ const CALENDARS = {
     tableId: 'tblnDTIxNAC0usEWF',
     employeeTableId: null,
     token: 'patf4aA7ZMZHg9SzH.bc53d633521da013138e70221dc328a3719445cbfdeaabbadace8d766747a448',
-    teamOrder: ['#RIV Team','RIV Team Manager','RIV Team Sr Director'],
+    teamOrder: ['RIV US','RIV Canada','RIV India','RIV Netherlands','RIV Poland','RIV Cyprus','RIV Team Manager','RIV Team Sr Director'],
     teamLabels: {
-      '#RIV Team':'RIV Team · ET',
-      'RIV Team Manager':'RIV Manager · ET',
-      'RIV Team Sr Director':'RIV Sr Director · ET'
+      'RIV US':'US · ET',
+      'RIV Canada':'Canada · ET',
+      'RIV India':'India · IST',
+      'RIV Netherlands':'Netherlands · CET',
+      'RIV Poland':'Poland · CET',
+      'RIV Cyprus':'Cyprus · EET',
+      'RIV Team Manager':'Manager · ET',
+      'RIV Team Sr Director':'Sr Director · ET'
+    },
+    // Map person names to location-based teams
+    memberTeams: {
+      'Gino Donatelli':'RIV US','T'Khari Fisher':'RIV US','Cici Chu':'RIV US','Michael Berg':'RIV US',
+      'Jude Patrao':'RIV Canada','Joshua Brooker':'RIV Canada',
+      'Deodas Saha':'RIV India','Ankush Keripale':'RIV India','Bijan Sahoo':'RIV India',
+      'Ronan Rozario':'RIV India','Shabnam Sultana':'RIV India','Yash Amrite':'RIV India',
+      'Monika Obracaj':'RIV Netherlands','Jorg Rebel':'RIV Netherlands',
+      'Karol Dzieszko':'RIV Poland',
+      'Christos Georgiou':'RIV Cyprus',
+      'Jeevan Chopra':'RIV Team Manager',
+      'Jen Huber':'RIV Team Sr Director'
     }
   },
   COORD: {
@@ -236,9 +255,14 @@ const CALENDAR_SUBTEAMS = {
     {value:'VP', label:'VP'}
   ],
   RIV: [
-    {value:'#RIV Team', label:'All RIV Team'},
-    {value:'RIV Team Manager', label:'RIV Manager'},
-    {value:'RIV Team Sr Director', label:'RIV Sr Director'}
+    {value:'RIV US', label:'US'},
+    {value:'RIV Canada', label:'Canada'},
+    {value:'RIV India', label:'India'},
+    {value:'RIV Netherlands', label:'Netherlands'},
+    {value:'RIV Poland', label:'Poland'},
+    {value:'RIV Cyprus', label:'Cyprus'},
+    {value:'RIV Team Manager', label:'Manager'},
+    {value:'RIV Team Sr Director', label:'Sr Director'}
   ],
   COORD: [
     {value:'Coordination Team', label:'Coordination Team'},
@@ -312,10 +336,24 @@ function setActiveCalendar(calKey){
   _cache = {};
   _tableId = null;
   _employeeMap = null;
+  // Set team order exactly as defined in config
   TEAM_ORDER.length = 0;
-  cal.teamOrder.forEach(t => TEAM_ORDER.push(t));
+  [...cal.teamOrder].forEach(t => TEAM_ORDER.push(t));
   Object.keys(TEAM_LABELS).forEach(k => delete TEAM_LABELS[k]);
   Object.assign(TEAM_LABELS, cal.teamLabels);
+  // Also update TEAM_TZ for this calendar's teams
+  if(cal.teamLabels) {
+    Object.keys(cal.teamLabels).forEach(t => {
+      if(!TEAM_TZ[t] && TEAM_TZ[t] !== '') {
+        // Set default TZ based on label
+        const lbl = cal.teamLabels[t]||'';
+        if(lbl.includes('IST')) TEAM_TZ[t]='IST';
+        else if(lbl.includes('CET')) TEAM_TZ[t]='CET';
+        else if(lbl.includes('EET')) TEAM_TZ[t]='EET';
+        else TEAM_TZ[t]='ET';
+      }
+    });
+  }
 }
 
 function switchCalendar(){ onCalendarChange(); }
@@ -383,6 +421,15 @@ function shiftStatus(shift){
 }
 
 function teamForName(name, teamFromAirtable){
+  // For RIV calendar, use location-based team mapping
+  if(_activeCalendar === 'RIV') {
+    const rivTeams = CALENDARS.RIV.memberTeams;
+    if(rivTeams[name]) return rivTeams[name];
+    // Try partial match
+    const match = Object.keys(rivTeams).find(k => name.toLowerCase().includes(k.split(' ')[1]?.toLowerCase()||''));
+    if(match) return rivTeams[match];
+    return '#RIV Team';
+  }
   if(teamFromAirtable) return teamFromAirtable;
   const lower = name.toLowerCase();
   if(RIV_VP.some(n => lower.includes(n.split(' ')[1]||n))) return 'VP';
