@@ -1014,7 +1014,15 @@ async function renderWeek(ds){
     const recs = _cache[d]||[];
     recs.forEach(rec => {
       const f = rec.fields;
-      const name = typeof f['Employees']==='string' ? f['Employees'] : (Array.isArray(f['Employees'])&&_employeeMap?resolveEmployees(f['Employees'])[0]:f['Employees'])||'';
+      // Handle both QC (Employees field) and COORD/RIV (Name from Employees field)
+      let name = '';
+      if(f['Name (from Employees)']) {
+        name = Array.isArray(f['Name (from Employees)']) ? f['Name (from Employees)'][0] : f['Name (from Employees)'];
+      } else if(typeof f['Employees']==='string') {
+        name = f['Employees'];
+      } else if(Array.isArray(f['Employees']) && _employeeMap) {
+        name = resolveEmployees(f['Employees'])[0]||'';
+      }
       if(!name||name.startsWith('rec')) return;
       const team = Array.isArray(f['Team (from Employees)'])?f['Team (from Employees)'][0]:(f['Team (from Employees)']||'*QC NY');
       const shift = f['Shift']||'';
