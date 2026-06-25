@@ -164,7 +164,9 @@ const TEAM_LABELS = {
 };
 const TEAM_TZ = {
   '*QC NY':'ET','§QC IN':'IST','-QC AMS':'CET','-QC WAW':'CET',
-  '#QC Manager & Supervisor':'ET/CET','QC Director':'CET','VP':'ET'
+  '#QC Manager & Supervisor':'ET/CET','QC Director':'CET','VP':'ET',
+  'Coordination Team':'ET','Coordination Supervisor':'ET','Coordination Manager':'ET',
+  '#RIV Team':'ET','RIV Team Manager':'ET','RIV Team Sr Director':'ET'
 };
 // People in Managers group who are on ET
 const ET_MANAGERS = ['panepinto','restivo'];
@@ -238,7 +240,10 @@ function switchCalendar(){
   _employeeMap = null;
   // Update team order and labels
   TEAM_ORDER.length = 0;
-  cal.teamOrder.forEach(t => TEAM_ORDER.push(t));
+  // Use spread to ensure correct order from config
+  const orderedTeams = [...cal.teamOrder];
+  orderedTeams.forEach(t => TEAM_ORDER.push(t));
+  console.log('Team order set to:', TEAM_ORDER.join(', '));
   // Reset TEAM_LABELS and TEAM_TZ to match new calendar
   Object.keys(TEAM_LABELS).forEach(k => delete TEAM_LABELS[k]);
   Object.assign(TEAM_LABELS, cal.teamLabels);
@@ -627,7 +632,8 @@ function render(records, ds){
 
     // Parse Comment field for local shift time
     // Comment blank or '-' means no local time available
-    const hasComment = comment && comment.trim() !== '-' && comment.trim() !== '';
+    // Coordination team: always use Start Date directly (already UTC)
+    const hasComment = !isCoordTeam && comment && comment.trim() !== '-' && comment.trim() !== '';
     if(hasComment){
       const parts = comment.split('-').map(s=>s.trim());
       if(parts.length===2){
@@ -640,11 +646,13 @@ function render(records, ds){
     // Determine home TZ offset from team field
     const tf2 = String((Array.isArray(teamField) ? teamField[0] : teamField) || '');
     const isIndiaTeam = tf2.includes('QC IN');
+    const isCoordTeam = _activeCalendar === 'COORD';
     // For managers, check if they're ET-based by name
     const ET_MANAGER_NAMES = ['panepinto','restivo','torres','howard','gannello'];
     const empNamesLower = employees.map(n=>n.toLowerCase());
     const isETManager = ET_MANAGER_NAMES.some(m => empNamesLower.some(n=>n.includes(m)));
     const homeOffset = (() => {
+      if(isCoordTeam) return 0; // Coord Start Dates already stored as UTC by fetchCoordDay
       if(isIndiaTeam) return 5.5;
       if(tf2.includes('AMS') || tf2.includes('WAW')) return 2;
       if(tf2.includes('Director')) return 2;
